@@ -537,10 +537,17 @@ extension PaymentCreatorController {
         .installmentBBL,
         .installmentKTC,
         .installmentKBank,
+        .promptPay,
+        .trueMoney,
+        .pointsCiti
     ]
     
     public static let japanDefaultAvailableSourceMethods: [OMSSourceTypeValue] = [
-        OMSSourceTypeValue.eContext,
+        .eContext,
+    ]
+    
+    public static let singaporeDefaultAvailableSourceMethods: [OMSSourceTypeValue] = [
+        .payNow,
     ]
     
     public static let internetBankingAvailablePaymentMethods: [OMSSourceTypeValue] = [

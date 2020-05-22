@@ -47,8 +47,15 @@ public class __SourcePaymentInformation: NSObject {
     
     /// Payment Information for an Alipay Payment
     public static let alipayPayment = __SourcePaymentInformation(type: OMSSourceTypeValue.alipay)!
+    
     /// Payment Information for a Tesco Lotus Bill Payment Payment
     public static let tescoLotusBillPaymentPayment = __SourcePaymentInformation(type: OMSSourceTypeValue.billPaymentTescoLotus)!
+    
+    /// Payment Information for an PromptPay Payment
+    public static let promptPayPayment = __SourcePaymentInformation(type: OMSSourceTypeValue.promptPay)!
+    
+    /// Payment Information for an PayNow Payment
+    public static let payNowPayment = __SourcePaymentInformation(type: OMSSourceTypeValue.promptPay)!
 }
 
 /// Internet Bankning Source Payment Information
@@ -212,6 +219,43 @@ public class __SourceEContextPayment: __SourcePaymentInformation {
     }
 }
 
+/// The TrueMoney customer information
+@objc(OMSTrueMoneyPaymentInformation)
+@objcMembers
+public class __SourceTrueMoneyPayment: __SourcePaymentInformation {
+    /// The customers phone number. Contains only digits and has 10 or 11 characters
+    public let phoneNumber: String
+    
+    /// Creates a new TrueMoney source with the given customer information
+    ///
+    /// - Parameters:
+    ///   - phoneNumber: The customers phone number
+    @objc public init(phoneNumber: String) {
+        self.phoneNumber = phoneNumber
+        super.init(type: OMSSourceTypeValue.trueMoney)!
+    }
+}
+
+/// Points Source Payment Information
+@objc(OMSPointsPaymentInformation)
+@objcMembers
+public class __SourcePointsPayment: __SourcePaymentInformation {
+    
+    /// Payment Information for a Citi Points Payment
+    public static let citiPoints = __SourcePointsPayment(type: OMSSourceTypeValue.pointsCiti)!
+    
+    /// Create a Points payment with the given source type value
+    ///
+    /// - Parameter type: Source type of the source to be created
+    /// - Precondition: type must have a prefix of `points`
+    @objc public override init?(type: OMSSourceTypeValue) {
+        guard type.rawValue.hasPrefix(PaymentInformation.Points.paymentMethodTypePrefix) else {
+            return nil
+        }
+        super.init(type: type)
+    }
+}
+
 /// CustomSource Source Payment Information
 @objc(OMSCustomPaymentInformation)
 @objcMembers
@@ -296,6 +340,20 @@ extension PaymentInformation {
         case let value as __SourceBarcodePayment:
             let rangeOfPrefix = value.type.rawValue.range(of: PaymentInformation.Barcode.paymentMethodTypePrefix)!
             self = .barcode(PaymentInformation.Barcode.other(String(value.type.rawValue[rangeOfPrefix.upperBound...]), parameters: [:]))
+        case let value where value.type == OMSSourceTypeValue.promptPay:
+            self = .promptpay
+        case let value as __SourceTrueMoneyPayment:
+            self = .truemoney(TrueMoney(phoneNumber: value.phoneNumber))
+        case let value as __SourcePointsPayment:
+            let type: PaymentInformation.Points
+            switch value.type {
+            case .pointsCiti:
+                type = .citiPoints
+            case let typeValue:
+                let range = typeValue.rawValue.range(of: PaymentInformation.Points.paymentMethodTypePrefix)!
+                type = .other(String(typeValue.rawValue[range.upperBound...]))
+            }
+            self = .points(type)
         case let value as __CustomSourcePayment:
             self = .other(type: value.type.rawValue, parameters: value.parameters)
         default:
@@ -354,6 +412,24 @@ extension __SourcePaymentInformation {
             }
         case .eContext(let eContext):
             return __SourceEContextPayment(name: eContext.name, email: eContext.email, phoneNumber: eContext.phoneNumber)
+        
+        case .promptpay:
+            return __SourcePaymentInformation.promptPayPayment
+            
+        case .paynow:
+            return __SourcePaymentInformation.payNowPayment
+            
+        case .truemoney(let trueMoney):
+            return __SourceTrueMoneyPayment(phoneNumber: trueMoney.phoneNumber)
+            
+        case .points(let points):
+            switch points {
+            case .citiPoints:
+                return __SourcePointsPayment.citiPoints
+            case .other(let type):
+                return __CustomSourcePayment(customType: type, parameters: [:])
+            }
+            
         case .other(type: let type, parameters: let parameters):
             return __CustomSourcePayment(customType: type, parameters: parameters)
         }
